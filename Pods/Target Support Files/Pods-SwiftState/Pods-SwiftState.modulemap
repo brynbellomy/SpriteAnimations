@@ -1,0 +1,6 @@
+framework module SwiftState {
+  umbrella header "Pods-SwiftState-umbrella.h"
+
+  export *
+  module * { export * }
+}

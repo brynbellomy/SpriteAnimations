@@ -1,0 +1,71 @@
+PODS:
+  - BrynSwift (0.0.1):
+    - LlamaKit
+    - SwiftLogger
+  - LlamaKit (0.1.0)
+  - SwiftBitmask (0.0.4):
+    - SwiftConfig
+  - SwiftConfig (0.0.1):
+    - SwiftyJSON
+  - SwiftDataStructures (0.0.2)
+  - SwiftFlatUIColors (0.0.1)
+  - SwiftLogger (0.0.1):
+    - SwiftFlatUIColors
+  - SwiftState (1.1.1)
+  - SwiftyJSON (2.1.1)
+
+DEPENDENCIES:
+  - BrynSwift (from `~/projects/_swift/BrynSwift`)
+  - LlamaKit (from `https://github.com/LlamaKit/LlamaKit`)
+  - SwiftBitmask (from `~/projects/_swift/SwiftBitmask`)
+  - SwiftConfig (from `~/projects/_swift/SwiftConfig`)
+  - SwiftDataStructures (from `~/projects/_swift/SwiftDataStructures`)
+  - SwiftFlatUIColors (from `~/projects/_swift/FlatUIColors`)
+  - SwiftLogger (from `~/projects/_swift/SwiftLogger`)
+  - SwiftState (from `https://github.com/ReactKit/SwiftState`)
+  - SwiftyJSON (from `https://github.com/orta/SwiftyJSON`, branch `podspec`)
+
+EXTERNAL SOURCES:
+  BrynSwift:
+    :path: ~/projects/_swift/BrynSwift
+  LlamaKit:
+    :git: https://github.com/LlamaKit/LlamaKit
+  SwiftBitmask:
+    :path: ~/projects/_swift/SwiftBitmask
+  SwiftConfig:
+    :path: ~/projects/_swift/SwiftConfig
+  SwiftDataStructures:
+    :path: ~/projects/_swift/SwiftDataStructures
+  SwiftFlatUIColors:
+    :path: ~/projects/_swift/FlatUIColors
+  SwiftLogger:
+    :path: ~/projects/_swift/SwiftLogger
+  SwiftState:
+    :git: https://github.com/ReactKit/SwiftState
+  SwiftyJSON:
+    :branch: podspec
+    :git: https://github.com/orta/SwiftyJSON
+
+CHECKOUT OPTIONS:
+  LlamaKit:
+    :commit: e37b966998df6ca05445c0b5d9c6c9560f1e7b61
+    :git: https://github.com/LlamaKit/LlamaKit
+  SwiftState:
+    :commit: 653f1a1d2aacc6ceadf230528e1a2f727e9b5408
+    :git: https://github.com/ReactKit/SwiftState
+  SwiftyJSON:
+    :commit: 252838693668023571c46f56d7ea8347e6948d1b
+    :git: https://github.com/orta/SwiftyJSON
+
+SPEC CHECKSUMS:
+  BrynSwift: 3d3cf65d82aa9de444038ec798583e98afa33a42
+  LlamaKit: 71673af25b2c733160d643e67c1f711d3afa4af2
+  SwiftBitmask: 58e0f1eed85df346c479f87e9fd61cfd76b86ec2
+  SwiftConfig: da41a07b01acac5193fe0fa52c6f4ccc2da5f786
+  SwiftDataStructures: 2e01fc2c79c9c18ac4063c415d9697cb9021b791
+  SwiftFlatUIColors: 2bb94cd4a283cc8ffac844f799508174291b935d
+  SwiftLogger: 3f7e955a401079de0da4fa7d8cd52fdc7d6b620c
+  SwiftState: f5309f5d31ae513b204b6c719975723a8d2215b8
+  SwiftyJSON: 85e4853fa377da93059763a3ca68fc5765d9b249
+
+COCOAPODS: 0.35.0
