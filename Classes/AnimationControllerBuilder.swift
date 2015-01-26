@@ -1,5 +1,5 @@
 //
-//  AnimationControllerBuilder.swift
+//  AnimationComponentBuilder.swift
 //  SpriteAnimations
 //
 //  Created by bryn austin bellomy on 2014 Dec 27.
@@ -8,29 +8,33 @@
 
 import Foundation
 import SpriteKit
-import BrynSwift
+import Funky
 import SwiftConfig
 import LlamaKit
+import SwiftLogger
 
 
 /**
-    Simplifies the building of `AnimationController` objects.
+    Simplifies the building of `AnimationComponent` objects.
  */
-public struct AnimationControllerBuilder <AnimationType: IAnimationType> : IConfigurableBuilder
+public struct AnimationComponentBuilder <A: IAnimationType>: IConfigurableBuilder
 {
-    /** The type of `AnimationController` built by this builder. */
-    public typealias BuiltType = AnimationController<AnimationType>
+    /** The type of `AnimationComponent` built by this builder. */
+    public typealias BuiltType = AnimationComponent<A>
 
-    /** The type of `AnimationAtlas` used by the `AnimationController` built by this builder. */
+    /** The type of `AnimationAtlas` used by the `AnimationComponent` built by this builder. */
     public typealias AtlasType = BuiltType.AtlasType
 
-    /** The name of the texture atlas (in the app's main bundle) from which to build the `AnimationController`. */
+    /** The name of the texture atlas (in the app's main bundle) from which to build the `AnimationComponent`. */
     public var textureAtlasName: String?
 
-    /** The value of the `anchorPoint` property on the `AnimationController`'s `SKSpriteNode`. */
-    public var anchorPoint: CGPoint = CGPoint(x:0.5, y:0.0)
+    /** The file extension (like "png") of the image files in the texture atlas. */
+    public var fileExtension: String = "png"
 
-    /** The value of the `framesPerSecond` property on the `AnimationController`. */
+    /** The value of the `anchorPoint` property on the `AnimationComponent`'s `SKSpriteNode`. */
+    public var anchorPoint = CGPoint(x:0.5, y:0.0)
+
+    /** The value of the `framesPerSecond` property on the `AnimationComponent`. */
     public var framesPerSecond = NSTimeInterval(3)
 
 
@@ -40,42 +44,51 @@ public struct AnimationControllerBuilder <AnimationType: IAnimationType> : IConf
 
     public mutating func configure(config:Config)
     {
-        framesPerSecond  =?? config.get("frames per second")
-        textureAtlasName =?? config.get("texture atlas")
+        textureAtlasName =?? config.get(keypath:["animation", "texture atlas"])
+        fileExtension    =?? config.get("file extension")
         anchorPoint      =?? config.get("anchor point")
+        framesPerSecond  =?? config.get("frames per second")
     }
 
 
-    public func build() -> Result<BuiltType, NSError>
+    public func build() -> Result<BuiltType>
     {
-        return buildAnimationController
-                    <^> buildAnimationAtlas
-                            -<< (textureAtlasName ?± failure(missingValue("textureAtlasName")))
-                    <*> (anchorPoint              ?± failure(missingValue("anchorPoint")))
-                    <|  framesPerSecond
+        let buildAtlasWithFileExtension: String -> (String -> Result<AnimationAtlas<A>>) = curry(buildAnimationAtlas)
+
+        return buildAnimationComponent(anchorPoint, framesPerSecond)
+                        <^> buildAtlasWithFileExtension(fileExtension)
+                                -<< (textureAtlasName ?± missingValueFailure("textureAtlasName"))
     }
 
 }
 
-private func missingValue(name:String) -> String {
-    return "AnimationControllerBuilder cannot build() without a value for '\(name)'."
+
+func missingValueFailure <T> (name:String) -> Result<T> {
+    return failure("AnimationComponentBuilder cannot build() without a value for '\(name)'.")
 }
 
-private func buildAnimationController <AnimationType: IAnimationType>
-    (animationAtlas:AnimationAtlas<AnimationType>)
-    (anchorPoint:CGPoint)
-    (framesPerSecond:NSTimeInterval)
-        -> AnimationController<AnimationType>
+
+private func buildAnimationComponent <A: IAnimationType>
+    (anchorPoint:CGPoint, framesPerSecond:NSTimeInterval) -> AnimationAtlas<A> -> AnimationComponent<A>
 {
-    return AnimationController(animationAtlas:animationAtlas, defaultTexture:nil, anchorPoint:anchorPoint, framesPerSecond:framesPerSecond)
+    return { animationAtlas in
+        return AnimationComponent(animationAtlas:animationAtlas, defaultTexture:nil, anchorPoint:anchorPoint, framesPerSecond:framesPerSecond)
+    }
 }
 
-private func buildAnimationAtlas <AnimationType: IAnimationType>
-    (textureAtlasName:String)
-        -> Result<AnimationAtlas<AnimationType>, NSError>
+private func buildAnimationAtlas <A: IAnimationType>
+    (fileExtension:String, textureAtlasName:String) -> Result<AnimationAtlas<A>>
 {
-    var builder = AnimationAtlas<AnimationType>.Builder()
-    builder.useTexturesFromAtlas(SKTextureAtlas(named:textureAtlasName))
+    var builder = AnimationAtlas<A>.Builder()
+    let atlas   = SKTextureAtlas(named:textureAtlasName)
+
+    assert(atlas != nil, "atlas '\(textureAtlasName)' was nil")
+    assert(atlas!.textureNames.count > 0, "atlas '\(textureAtlasName)' count was 0")
+
+    builder.useTexturesFromAtlas(atlas, fileExtension:fileExtension)
+
     return builder.build()
 }
+
+
 

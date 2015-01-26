@@ -9,21 +9,20 @@
 import Foundation
 import class SpriteKit.SKTextureAtlas
 import class SpriteKit.SKTexture
-import BrynSwift
-import SwiftLogger
+import Funky
 import LlamaKit
 
 
-public struct AnimationAtlasBuilder <AnimationType: IAnimationType>
+public struct AnimationAtlasBuilder <A: IAnimationType>
 {
-    private typealias BuiltType = AnimationAtlas<AnimationType>
+    private typealias BuiltType = AnimationAtlas<A>
     private typealias Keypath   = BuiltType.Keypath
-    private typealias Entry     = AnimationAtlasBuilderEntry<AnimationType>
+    private typealias Entry     = AnimationAtlasBuilderEntry<A>
 
-    private typealias BuilderCollection = [AnimationType: TextureSequence.Builder]
+    private typealias BuilderCollection = [A: TextureSequence.Builder]
     private var textureSequenceBuilders = BuilderCollection()
 
-    private var entries = [Result<Entry, NSError>]()
+    private var entries = [Result<Entry>]()
 
 
     public init() {
@@ -37,54 +36,66 @@ public struct AnimationAtlasBuilder <AnimationType: IAnimationType>
 
 
 
-    public mutating func useTexturesFromAtlas(atlas:SKTextureAtlas)
+    public mutating func useTexturesFromAtlas(atlas:SKTextureAtlas, fileExtension:String)
     {
-        func getKeypath(textureName:String) -> Result<Keypath, NSError> {
+        func getKeypath(textureName:String) -> Result<Keypath> {
             return Keypath(textureName:textureName) ?± failure("Cannot create AnimationAtlasKeypath from texture name '\(textureName)'")
         }
 
-        func loadTexture(keypath:Keypath) -> Result<Entry, NSError> {
-            if !contains(atlas.textureNames as [String], keypath.textureName) {
-                return failure("Could not load texture for name: '\(keypath.textureName)'")
+        func loadTexture(keypath:Keypath) -> Result<Entry>
+        {
+            let textureName = "\(keypath.textureName).\(fileExtension)"
+            if let textureNames = atlas.textureNames as? [String]
+            {
+                if let index = find(textureNames, textureName) {
+                    let texture = atlas.textureNamed(textureNames[index])
+                    return Entry(keypath:keypath, texture:texture) |> success
+                }
             }
-            return success(Entry(keypath:keypath, texture:atlas.textureNamed(keypath.textureName)))
-        }
-
-        func addEntry(result:Result<Entry, NSError>) {
-            if let entry = result.value? { setTexture(entry.texture, forKeypath:entry.keypath) }
+            return failure("Could not load texture for name: '\(textureName)'")
         }
 
         atlas.textureNames as [String] |> mapr(getKeypath />> loadTexture)
-                                       |> do_each(addEntry)
+                                       |> doEach(entries.append)
     }
 
 
-    public mutating func build() -> Result<BuiltType, NSError>
+    public mutating func build() -> Result<BuiltType>
     {
-        func buildTextureSequences(buildGroups:[AnimationType: [Entry]]) -> [(AnimationType, TextureSequence)]
+        func buildTextureSequences(buildGroups:[A: [Entry]]) -> [A: TextureSequence]
         {
-            return buildGroups |> mapr { animation, entryList in
-                                   var builder = TextureSequence.Builder()
-                                   entryList |> do_each { builder.setTexture($0.texture, atIndex:$0.keypath.frameIndex) }
-                                   return (animation, builder.build())
+            return buildGroups |> mapValues { entryList in
+                                   entryList |> reducer(TextureSequence.Builder()) { (var current, next) in current.addEntry(next) }
+                                             |> { $0.build() }
                                }
         }
 
-        return entries  |> map_filter(unwrap_value)
-                        |> group_by { $0.keypath.animation }
+        return coalesce(entries) >>- { entries in
+
+                entries |> groupBy { $0.keypath.animation }
                         |> buildTextureSequences
-                        |> mapToDictionary(id)
-                        |> do_side(lllog(.Debug, prefix:"AnimationAtlasBuilder"))
-                        |> { AnimationAtlas(textures:$0) } >>> success
+                        |> { AnimationAtlas<A>(textures:$0) } |> success
+            }
+    }
+}
+
+
+private extension TextureSequence.Builder
+{
+    mutating func addEntry <A: IAnimationType> (entry:AnimationAtlasBuilder<A>.Entry) -> TextureSequence.Builder {
+        setTexture(entry.texture, atIndex:entry.keypath.frameIndex)
+        return self
     }
 }
 
 
 
 
-private struct AnimationAtlasBuilderEntry <AnimationType: IAnimationType> : Printable, Equatable, Comparable
+
+
+private struct AnimationAtlasBuilderEntry <A: IAnimationType> : Printable, Equatable, Comparable
 {
-    typealias BuilderType = AnimationAtlasBuilder <AnimationType>
+    typealias BuilderType = AnimationAtlasBuilder<A>
     typealias Keypath = BuilderType.Keypath
 
     let keypath : Keypath

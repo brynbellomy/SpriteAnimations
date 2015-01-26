@@ -12,11 +12,11 @@ Pod::Spec.new do |s|
   s.source_files = 'Classes/*.swift'
   s.requires_arc = true
 
+  s.dependency 'Funky'
   s.dependency 'SwiftLogger'
   s.dependency 'BrynSwift'
   s.dependency 'SwiftConfig'
   s.dependency 'LlamaKit'
-  s.dependency 'SwiftState'
 
   s.source = { :git => 'https://github.com/brynbellomy/SpriteAnimations.git', :tag => s.version }
 end

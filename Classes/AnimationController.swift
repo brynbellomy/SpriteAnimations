@@ -1,5 +1,5 @@
 //
-//  AnimationController.swift
+//  AnimationComponent.swift
 //  SpriteAnimations
 //
 //  Created by bryn austin bellomy on 2014 Nov 28.
@@ -8,41 +8,38 @@
 
 import Foundation
 import SpriteKit
-import SwiftLogger
 import SwiftConfig
 import LlamaKit
+import Funky
 
 
-public enum AnimationControllerState: String {
+public enum AnimationComponentState: String {
     case Animating = "Animating"
     case NotAnimating = "NotAnimating"
 }
 
 private let CurrentAnimationKey = "current animation"
 
-public class AnimationController <AnimationType: IAnimationType>
+public class AnimationComponent <A: IAnimationType>
 {
-    public typealias AtlasType = AnimationAtlas<AnimationType>
-    public typealias Builder = AnimationControllerBuilder<AnimationType>
-    public typealias Keypath = AtlasType.Keypath
-    public typealias State = AnimationControllerState
+    public typealias AnimationType = A
 
-
-    private func log(string:String) {
-        lllog(.Debug, "(\(spriteNode.name)) \(string)")
-    }
+    public typealias AtlasType = AnimationAtlas<A>
+    public typealias Builder   = AnimationComponentBuilder<A>
+    public typealias Keypath   = AtlasType.Keypath
+    public typealias State     = AnimationComponentState
 
 
     // MARK: Animations
 
-    public var defaultAnimation: AnimationType = AnimationType.defaultValue
+    public var defaultAnimation: A = AnimationType.defaultValue
     public let defaultKeypath = Keypath(animation: AnimationType.defaultValue, frameIndex: 0)
 
     /** The sprite node on which the animations will be played.  Add this node to your node hierarchy. */
-    public var spriteNode = SKSpriteNode()
+    public var spriteNode: SKSpriteNode
 
     /** The AnimationAtlas from which to read the animations. */
-    public var animationAtlas = AtlasType()
+    public var animationAtlas: AtlasType
 
     /** The speed of the animation in frames per second. */
     public var framesPerSecond : NSTimeInterval {
@@ -53,25 +50,17 @@ public class AnimationController <AnimationType: IAnimationType>
     /** Expressed as "1 / FPS", where FPS is the desired frames per second. */
     private var animationSpeed : NSTimeInterval = (1 / 3)
 
-    /** The currently running animation (or the animation that was running the last time the controller was animating).  You can set this value to change the animation as it's running. */
-    public var currentAnimation : AnimationType = .defaultValue {
-        didSet {
-            log("[current animation] set to '\(currentAnimation.description)' (old value = \(oldValue.description))")
-            if currentAnimation != oldValue && state == .Animating {
-                startAnimating()
-            }
-        }
-    }
+    /** The currently running animation (or the animation that was running the last time the Component was animating).  You can set this value to change the animation as it's running. */
+    public private(set) var currentAnimation : A = .defaultValue
 
-    /** The current state of the controller (animating or not animating). */
+    /** The current state of the Component (animating or not animating). */
     public private(set) var state: State = .NotAnimating
+
+
 
     //
     // MARK: - Lifecycle
     //
-
-    public init() {
-    }
 
     public init(animationAtlas a:AtlasType, defaultTexture d:SKTexture?, anchorPoint p:CGPoint, framesPerSecond fps:NSTimeInterval) {
         animationAtlas = a
@@ -81,20 +70,34 @@ public class AnimationController <AnimationType: IAnimationType>
         spriteNode.anchorPoint = p
     }
 
+
+
     //
     // MARK: - Public API
     //
 
-    public func setState(newState:State)
+    public func setCurrentAnimation(animation:A) -> Result<()>
     {
-        log("[setState called] new state = \(newState.rawValue) [current state = \(state.rawValue)]")
-        if newState != state
-        {
-            switch state {
-                case .Animating:    stopAnimating()
-                case .NotAnimating: startAnimating()
+        if currentAnimation != animation {
+            currentAnimation = animation
+
+            if state == .Animating {
+                return startAnimating()
             }
-            state = newState
+        }
+        return success()
+    }
+
+    public func setState(newState:State) -> Result<()>
+    {
+        let oldState = state
+        state = newState
+
+        switch (oldState, newState)
+        {
+            case (.Animating, .NotAnimating):    return stopAnimating()
+            case (.NotAnimating, .Animating):    return startAnimating()
+            default: return success()
         }
     }
 
@@ -103,31 +106,26 @@ public class AnimationController <AnimationType: IAnimationType>
     //
 
     /**
-        Removes any running animations from the controller's `spriteNode`.
+        Removes any running animations from the Component's `spriteNode`.
     */
-    private func stopAnimating()
-    {
-        log("stopAnimating()")
+    private func stopAnimating() -> Result<()> {
         spriteNode.removeActionForKey(CurrentAnimationKey)
-
-        if let texture = animationAtlas[ currentAnimation, 0 ]? {
-            spriteNode.runAction(SKAction.setTexture(texture))
-        }
+        return success()
     }
 
-    private func startAnimating()
+    private func startAnimating() -> Result<()>
     {
-        log("startAnimating()")
-//        spriteNode.removeActionForKey("current animation")
-        if let textures = animationAtlas[ currentAnimation ]?
+        if let textures = animationAtlas.texturesForAnimation(currentAnimation)
         {
-            let animationAction         = SKAction.animateWithTextures(textures.toArray(), timePerFrame:animationSpeed, resize:true, restore:false)
+            var textureArray = textures.toArray()
+            let animationAction         = SKAction.animateWithTextures(textureArray, timePerFrame:animationSpeed, resize:true, restore:false)
             let repeatedAnimationAction = SKAction.repeatActionForever(animationAction)
 
             spriteNode.runAction(repeatedAnimationAction, withKey:CurrentAnimationKey)
+            return success()
         }
         else {
-            lllog(.Warning, "AnimationType changed, but the new TextureSequence could not be found (keypath: \(currentAnimation))")
+            return failure("AnimationType changed, but the new TextureSequence could not be found (keypath: \(currentAnimation))")
         }
     }
 }

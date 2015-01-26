@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import BrynSwift
+import Funky
 
 
 /**
@@ -24,7 +24,7 @@ public struct AnimationAtlasKeypath <AnimationType : IAnimationType>
     /** The canonical representation of the keypath as a texture name.  It is formatted: `{animation.animationFilenameComponent}-{frameIndex}`. */
     public var textureName: String {
         let frameIndexFormatted = String(format:"%.3d", frameIndex)
-        return "\(animation.animationFilenameComponent)-\(frameIndexFormatted).png"
+        return "\(animation.animationFilenameComponent)-\(frameIndexFormatted)"
     }
 
     /** The designated initializer. */
@@ -52,7 +52,7 @@ public struct AnimationAtlasKeypath <AnimationType : IAnimationType>
         let animationStr = join("-", parts)
         let animation    = AnimationType(animationFilenameComponent:animationStr)
 
-        if let (a, fi) = both(animation, frameIndex)? {
+        if let (a, fi) = both(animation, frameIndex) {
             self.init(animation:a, frameIndex:fi)
         }
         else {
