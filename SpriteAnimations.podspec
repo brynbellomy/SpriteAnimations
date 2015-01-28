@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   s.source_files = 'Classes/*.swift'
   s.requires_arc = true
 
-  s.dependency 'Funky'
+  s.dependency 'Funky', '0.1.2'
   s.dependency 'SwiftLogger'
   s.dependency 'BrynSwift'
   s.dependency 'SwiftConfig'

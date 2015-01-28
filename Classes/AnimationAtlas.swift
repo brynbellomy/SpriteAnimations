@@ -24,7 +24,7 @@ public struct AnimationAtlas <AnimationType : IAnimationType>
     // MARK: - Member variables
     //
 
-    internal private(set) var textures: [String: TextureSequence]
+    internal private(set) var textures: [AnimationType: TextureSequence]
 
     /** The first texture of the animation `AnimationType.defaultValue`, or nil if it does not exist. */
     public var defaultTexture: SKTexture? {
@@ -34,14 +34,15 @@ public struct AnimationAtlas <AnimationType : IAnimationType>
     public var defaultTextureKeypath: Keypath = Keypath(animation:AnimationType.defaultValue, frameIndex:0)
 
     public var allAnimations: [AnimationType] {
-        return map(textures.keys) { AnimationType(animationFilenameComponent:$0)! }
+        return Array(textures.keys)
+//        return map(textures.keys) { AnimationType(animationFilenameComponent:$0)! }
     }
 
     public var allKeypaths: [Keypath] {
         return reduce(textures, [Keypath]()) { current, next in
             let (animation, textureSequence) = next
             let indices  = stride(from:0, to:textureSequence.count, by:1)
-            let keypaths = map(indices) { Keypath(animation:AnimationType(animationFilenameComponent:animation)!, frameIndex:$0) }
+            let keypaths = map(indices) { Keypath(animation:animation, frameIndex:$0) }
             return current + keypaths
         }
     }
@@ -52,12 +53,13 @@ public struct AnimationAtlas <AnimationType : IAnimationType>
     //
 
     public init(textures t: [AnimationType: TextureSequence]) {
-        textures = t |> mapKeys { $0.animationFilenameComponent }
+        textures = t
+//        textures = t |> mapKeys { $0.animationFilenameComponent }
     }
 
 
     public init() {
-        textures = [String: TextureSequence]()
+        textures = [AnimationType: TextureSequence]()
     }
 
 
@@ -80,7 +82,7 @@ public struct AnimationAtlas <AnimationType : IAnimationType>
 
     /** Returns `true` if the animation exists in the atlas and `false` otherwise. */
     public func hasAnimation(animation:AnimationType) -> Bool {
-        return textures.indexForKey(animation.animationFilenameComponent) != nil
+        return textures.indexForKey(animation) != nil
     }
 
 
@@ -105,7 +107,7 @@ public struct AnimationAtlas <AnimationType : IAnimationType>
 
     /** Returns the `TextureSequence` for the given animation, or nil if none was found. */
     public func texturesForAnimation(animation:AnimationType) -> TextureSequence? {
-        if let index = textures.indexForKey(animation.animationFilenameComponent) {
+        if let index = textures.indexForKey(animation) {
             return textures[index].1
         }
         return nil
